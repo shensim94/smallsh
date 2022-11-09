@@ -1,10 +1,7 @@
 /*
-Name: smallsh, a limited-feature shell written in c 
+Name: smallsh, a limited-feature shell written in c
 Synopsis: command [arg1 arg2 ...] [< input_file] [> output_file] [&]
 Arthur: Simon Shen
-Note: although signal handling is present, it does not work as 
-      intended, rn it is basically only there so the test script
-      doesn't hang :(
 Date[last modified]: 5/9/2022
 */
 #include <stdlib.h>
