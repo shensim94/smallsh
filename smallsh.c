@@ -49,7 +49,7 @@ int parseInput(cmdInput* input, int pid, int* bg){
 
     // skip comments and non inputs
     if(inputString[0]=='#' || inputString[0] == '\n'){
-        return 1;  
+        return 1;
     }
 
     // skip blank lines
@@ -66,13 +66,13 @@ int parseInput(cmdInput* input, int pid, int* bg){
     int n = snprintf(NULL, 0, "%d", pid);
     pidstr = malloc((n + 1) * sizeof *pidstr);
     sprintf(pidstr, "%d", pid);
-  
-    
+
+
     /* strips out newline character at the end */
     if(inputString[strlen(inputString)-1] == '\n'){
         inputString[strlen(inputString)-1] = '\0';
     };
-    
+
     /* count the number of instances "$$" appears */
     int count = 0;
     const char *tmp = inputString;
@@ -80,7 +80,7 @@ int parseInput(cmdInput* input, int pid, int* bg){
         count++;
         tmp = tmp+2;
     }
-    
+
     /* create an expanded string that copies over the input string
     char by char and expands any instance of $$ */
     char exStr[strlen(inputString)+count*(strlen(pidstr)-2)+1];
@@ -88,7 +88,7 @@ int parseInput(cmdInput* input, int pid, int* bg){
     int k = 0;
     int in_len = strlen(inputString);
     while(j < in_len){
-        
+
         if ((inputString[j] == '$') && (inputString[j+1] == '$')){
             for(size_t a=0; a < strlen(pidstr); a++){
                 exStr[k] = pidstr[a];
@@ -96,7 +96,7 @@ int parseInput(cmdInput* input, int pid, int* bg){
             }
         j=j+2;
         }
-        
+
         else{
             exStr[k]=inputString[j];
             j++;
@@ -109,33 +109,33 @@ int parseInput(cmdInput* input, int pid, int* bg){
     int i = 0;
     char* token;
     token = strtok(exStr, " ");
-    
+
     /* get all the args */
     while (token != NULL && strcmp(token, "<") && strcmp(token, ">") && strcmp(token, "&") ){
-        
+
         input->arg[i] = __strdup(token); 
         i++;
         token = strtok(NULL, " ");
     }
     /* get input, output, and background boolean */
     while (token != NULL){
-        
+
         if (!strcmp(token, "<")){
             token = strtok(NULL, " ");
             input->inputfile = __strdup(token);
         }
-        
+
         else if (!strcmp(token, ">")){
             token = strtok(NULL, " ");
             input->outputfile = __strdup(token);
         }
-        
+
         else if (!strcmp(token, "&")){
             *bg = 1;
-        } 
+        }
         token = strtok(NULL, " ");
     }
-  return 0;  
+  return 0;
 }
 
 /* handles the following commands: exit, cd and status */
@@ -152,8 +152,8 @@ int execBuiltIn(cmdInput input){
     
     else if (!strcmp(input.arg[0], "status")){
         if (WIFEXITED(exitStatus)){
-			      printf("exit value %d\n", WEXITSTATUS(exitStatus));
-			      fflush(stdout);
+			printf("exit value %d\n", WEXITSTATUS(exitStatus));
+			fflush(stdout);
         }
         else{ // if(WIFSIGNALED(wstatus))
             printf("terminated by signal %d\n", WTERMSIG(exitStatus));
@@ -171,25 +171,25 @@ int execBuiltIn(cmdInput input){
 void run(cmdInput input, int bg, struct sigaction SIGTSTP_action, struct sigaction SIGINT_action){
     int sourceFD;
     int targetFD;
-  
-	  // Fork a new process
-  
-    pid_t spawnPid = -5;
-	  spawnPid = fork();
 
-	  switch(spawnPid){
-	
+	  // Fork a new process
+
+    pid_t spawnPid = -5;
+	spawnPid = fork();
+
+	switch(spawnPid){
+
         case -1:
 		        perror("fork()\n");
 		        exit(1);
 		        break;
-	
-        case 0: 
+
+        case 0:
             /* simply ignore SIGTSTP in the child process */
             if(bg==1){SIGINT_action.sa_handler = SIG_IGN;}
             else{SIGINT_action.sa_handler = SIG_DFL;}
             sigaction(SIGINT, &SIGINT_action, NULL);
-    
+
             /* I/O redirection should be done in the child process */
             if (input.inputfile != NULL){
             // setup for input redirection
@@ -197,17 +197,17 @@ void run(cmdInput input, int bg, struct sigaction SIGTSTP_action, struct sigacti
                 if (sourceFD == -1) {
 		                perror("open()");
 		                exit(1);
-	              }
+	            }
                 dup2(sourceFD, 0);
                 fcntl(sourceFD, F_SETFD, FD_CLOEXEC);
             }
             /*sourceFD = open("/dev/null", O_RDONLY);
-              if (sourceFD == -1) {
+            if (sourceFD == -1) {
                 perror("open()");
                 exit(1);
-              }
-              dup2(sourceFD, 0);
-              fcntl(sourceFD, F_SETFD, FD_CLOEXEC);*/
+            }
+            dup2(sourceFD, 0);
+            fcntl(sourceFD, F_SETFD, FD_CLOEXEC);*/
 
             if (input.outputfile != NULL){
                 // setup for output redirection
@@ -228,18 +228,18 @@ void run(cmdInput input, int bg, struct sigaction SIGTSTP_action, struct sigacti
             break;
 	
         /* parent process */
-        default: 
+        default:
             if(bg == 0 || allowBg == 0 ){ // run in the foreground
 
                 spawnPid = waitpid(spawnPid, &exitStatus, 0);
 
-            } 
+            }
             else if (bg == 1 && allowBg == 1){
                 waitpid(spawnPid, &exitStatus, WNOHANG);
                 printf("background pid is %d\n", spawnPid);
                 fflush(stdout);
             }
-	  } 
+	}
 }
 
 /* handles SIGTSTP, basically just toggles the 
@@ -266,42 +266,42 @@ void handle_zombies(int signo){
     while ((bgPid = waitpid(-1, &exitStatus, WNOHANG)) > 0) {
         if (WIFEXITED(exitStatus)){
             printf("background pid %d is done: exit value %d\n: ", bgPid, WEXITSTATUS(exitStatus));
-            fflush(stdout);                                
+            fflush(stdout);
         }
         else{ // if(WIFSIGNALED(wstatus))
             printf("background pid %d is done: terminated by signal %d\n: ", bgPid, WTERMSIG(exitStatus));
             fflush(stdout);
-        }     
+        }
     }
 }
 
 int main(){
-    
+
     int bg = 0;
     int pid = getpid();
     cmdInput input;
-  
+
     struct sigaction SIGINT_action = {0};
 
-	  // Fill out the SIGINT_action struct
+	/*set up the sigaction struct per: Exploration: Signal Handling API*/
   	// Register handle_SIGINT as the signal handler
-  	SIGINT_action.sa_handler = SIG_IGN;
+    SIGINT_action.sa_handler = SIG_IGN;
   	// Block all catchable signals while handle_SIGINT is running
-  	sigfillset(&SIGINT_action.sa_mask);
+    sigfillset(&SIGINT_action.sa_mask);
   	// No flags set
-  	SIGINT_action.sa_flags = 0;
+    SIGINT_action.sa_flags = 0;
     sigaction(SIGINT, &SIGINT_action, NULL);
-  
+
     /*set up the sigaction struct per: Exploration: Signal Handling API*/
     struct sigaction SIGTSTP_action = {0};
     SIGTSTP_action.sa_handler = handle_SIGTSTP;
-	  sigfillset(&SIGTSTP_action.sa_mask);
-	  SIGTSTP_action.sa_flags = SA_RESTART;
+	sigfillset(&SIGTSTP_action.sa_mask);
+	SIGTSTP_action.sa_flags = SA_RESTART;
     sigaction(SIGTSTP, &SIGTSTP_action, NULL);
 
     /* main execution loop runs indefinitely until cmd exit*/
     while(1){
-      
+
         /* clean up the input before every loop */
         input.inputfile = NULL;
         input.outputfile = NULL;
@@ -311,15 +311,10 @@ int main(){
 
         /* get inputs */
         if(parseInput(&input, pid, &bg) == 0){  // parseInput returns 0 if inputs are valid syntax(they can still be bad files)
-
             if(execBuiltIn(input) == 0){   // execBuiltIn returns 0 if no built-in cmds are performed
-            
                 run(input, bg, SIGTSTP_action, SIGINT_action);
-          
-          }
-          
+            }
         }
-        
         bg = 0;        // reset the background toggle
 
         /* reap dead children */
